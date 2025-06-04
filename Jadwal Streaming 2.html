@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Jadwal Petugas Streaming Bulanan</title>
+<style>
+  :root {
+    --primary-color: #4a90e2;
+    --secondary-color: #50e3c2;
+    --bg-color: #f9fafc;
+    --card-bg: #ffffff;
+    --text-color: #333;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 1rem;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    color: var(--primary-color);
+    margin-bottom: 0.3rem;
+  }
+  p {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+  #input-section {
+    background: var(--card-bg);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 0.1);
+    max-width: 420px;
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+  label {
+    font-weight: 600;
+  }
+  textarea {
+    width: 100%;
+    height: 80px;
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    resize: vertical;
+    margin-top: 0.3rem;
+  }
+  button {
+    background: var(--primary-color);
+    border: none;
+    color: white;
+    padding: 0.6rem 1.1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    width: 100%;
+    transition: background-color 0.2s ease;
+  }
+  button:hover {
+    background: #3a76c1;
+  }
+  #schedule-container {
+    max-width: 900px;
+    width: 100%;
+  }
+  .day-schedule {
+    background: var(--card-bg);
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.05);
+    padding: 1rem;
+  }
+  .day-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+    color: var(--secondary-color);
+  }
+  .shift {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.35rem 0.5rem;
+    border-radius: 6px;
+    background: #f0f9f9;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  .shift-label {
+    font-weight: 600;
+    color: var(--primary-color);
+  }
+  .names {
+    font-style: italic;
+  }
+  @media (max-width: 600px) {
+    .shift {
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>Jadwal Petugas Streaming Bulanan</h1>
+<div id="input-section">
+  <p>Masukkan nama-nama petugas streaming, satu nama per baris:</p>
+  <label for="names-input">Nama Petugas:</label>
+  <textarea id="names-input" placeholder="Contoh:&#10;Andi&#10;Budi&#10;Citra&#10;Dewi"></textarea>
+  <button id="generate-btn">Buat Jadwal</button>
+</div>
+<div id="schedule-container"></div>
+
+<script>
+  const generateBtn = document.getElementById('generate-btn');
+  const scheduleContainer = document.getElementById('schedule-container');
+
+  // Define the shifts for the weekend days
+  const saturdayShifts = [
+    { label: 'Sabtu 17:00', time: '17:00' }
+  ];
+  const sundayShifts = [
+    { label: 'Minggu 06:00', time: '06:00' },
+    { label: 'Minggu 08:00', time: '08:00' },
+    { label: 'Minggu 17:00', time: '17:00' }
+  ];
+
+  // Function to get all Saturdays and Sundays for a given month and year
+  function getWeekendDates(year, month) {
+    const dates = [];
+    const date = new Date(year, month, 1);
+    while (date.getMonth() === month) {
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek === 6 || dayOfWeek === 0) { // Saturday=6, Sunday=0
+        dates.push(new Date(date));
+      }
+      date.setDate(date.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // Shuffle array utility function
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+  }
+
+  // Function to assign petugas randomly in pairs for each shift on each day
+  function assignSchedule(names, dates) {
+    const schedule = [];
+
+    // Need at least 2 names to assign per shift
+    if (names.length < 2) {
+      alert('Masukkan minimal 2 nama petugas untuk membuat jadwal.');
+      return schedule;
+    }
+
+    for (const date of dates) {
+      const dayOfWeek = date.getDay();
+      let shifts = [];
+      if (dayOfWeek === 6) {
+        // Saturday shifts
+        shifts = saturdayShifts;
+      } else if (dayOfWeek === 0) {
+        // Sunday shifts
+        shifts = sundayShifts;
+      }
+
+      const daySchedule = { date: new Date(date), shifts: [] };
+
+      for (const shift of shifts) {
+        // Make a new copy so shuffle won't affect original array
+        let namesCopy = [...names];
+        shuffleArray(namesCopy);
+
+        // Pick first two unique names
+        const assigned = namesCopy.slice(0, 2);
+
+        daySchedule.shifts.push({
+          label: shift.label,
+          names: assigned
+        });
+      }
+
+      schedule.push(daySchedule);
+    }
+
+    return schedule;
+  }
+
+  // Utility to format date to readable string: e.g. "Sabtu, 10 Juni 2023"
+  function formatDate(date) {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+
+  function renderSchedule(schedule) {
+    scheduleContainer.innerHTML = ''; // Clear previous
+
+    if (schedule.length === 0) {
+      scheduleContainer.innerHTML = '<p>Jadwal belum dibuat.</p>';
+      return;
+    }
+
+    for (const daySch of schedule) {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'day-schedule';
+
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = formatDate(daySch.date);
+      dayDiv.appendChild(header);
+
+      for (const shift of daySch.shifts) {
+        const shiftDiv = document.createElement('div');
+        shiftDiv.className = 'shift';
+
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'shift-label';
+        labelSpan.textContent = shift.label;
+
+        const namesSpan = document.createElement('span');
+        namesSpan.className = 'names';
+        namesSpan.textContent = shift.names.join(', ');
+
+        shiftDiv.appendChild(labelSpan);
+        shiftDiv.appendChild(namesSpan);
+
+        dayDiv.appendChild(shiftDiv);
+      }
+
+      scheduleContainer.appendChild(dayDiv);
+    }
+  }
+
+  generateBtn.addEventListener('click', () => {
+    const namesText = document.getElementById('names-input').value.trim();
+    if (!namesText) {
+      alert('Mohon masukkan minimal 2 nama petugas.');
+      return;
+    }
+    const names = namesText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+
+    if (names.length < 2) {
+      alert('Masukkan minimal 2 nama petugas.');
+      return;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // current month
+
+    const weekendDates = getWeekendDates(year, month);
+    const schedule = assignSchedule(names, weekendDates);
+
+    renderSchedule(schedule);
+  });
+</script>
+</body>
+</html>
+
